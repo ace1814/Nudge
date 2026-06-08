@@ -8,6 +8,10 @@
   "files": [
     "out/**/*"
   ],
+  "extraResources": [
+    { "from": "resources/tray-icon.png", "to": "tray-icon.png" },
+    { "from": "resources/tray-icon@2x.png", "to": "tray-icon@2x.png" }
+  ],
   "electronDist": "node_modules/electron/dist",
   "electronVersion": "31.7.7",
   "mac": {
