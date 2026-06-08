@@ -8,21 +8,21 @@
   "files": [
     "out/**/*"
   ],
+  "electronDist": "node_modules/electron/dist",
+  "electronVersion": "31.7.7",
   "mac": {
-    "target": "dmg",
+    "target": {
+      "target": "dmg",
+      "arch": "arm64"
+    },
     "icon": "resources/icon.icns",
     "category": "public.app-category.productivity",
-    "hardenedRuntime": true,
-    "entitlements": "resources/entitlements.mac.plist",
-    "entitlementsInherit": "resources/entitlements.mac.plist"
+    "hardenedRuntime": false
   },
   "dmg": {
     "contents": [
       { "x": 130, "y": 220 },
       { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
     ]
-  },
-  "nsis": {
-    "oneClick": false
   }
 }
