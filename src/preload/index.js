@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('nudge', {
   completeNudge: (id, note) => ipcRenderer.invoke('complete-nudge', id, note),
   snoozeNudge: (id, minutes) => ipcRenderer.invoke('snooze-nudge', id, minutes),
   dismissNudge: (id) => ipcRenderer.invoke('dismiss-nudge', id),
+  deleteNudge: (id) => ipcRenderer.invoke('delete-nudge', id),
 
   // Habits
   getHabits: () => ipcRenderer.invoke('get-habits'),

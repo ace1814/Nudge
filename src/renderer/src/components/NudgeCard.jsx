@@ -1,4 +1,4 @@
-import { Check, Clock, X } from 'lucide-react'
+import { Check, Clock, X, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,7 @@ const STATUS_BADGE = {
   snoozed: 'snoozed'
 }
 
-export default function NudgeCard({ nudge, onComplete, onSnooze, onDismiss }) {
+export default function NudgeCard({ nudge, onComplete, onSnooze, onDismiss, onDelete }) {
   const isDone = nudge.status === 'done'
   const isMissed = nudge.status === 'missed'
   const isOver = isDone || isMissed
@@ -29,7 +29,7 @@ export default function NudgeCard({ nudge, onComplete, onSnooze, onDismiss }) {
   return (
     <div className={cn(
       'group flex items-start gap-3 p-3 rounded-xl border border-border bg-card transition-all',
-      isOver && 'opacity-45'
+      isOver && 'opacity-50'
     )}>
       {/* Dot */}
       <div className="mt-[6px] flex-shrink-0">
@@ -57,21 +57,27 @@ export default function NudgeCard({ nudge, onComplete, onSnooze, onDismiss }) {
         </div>
       </div>
 
-      {/* Action buttons — visible on hover (or always for active) */}
-      {!isOver && (
-        <div className="flex flex-col gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button size="icon-sm" variant="success" onClick={() => onComplete(nudge.id)}>
-            <Check size={12} />
-          </Button>
-          <Button size="icon-sm" variant="ghost" onClick={() => onSnooze(nudge.id, 60)} title="Snooze 1 hour">
-            <Clock size={12} />
-          </Button>
-          <Button size="icon-sm" variant="ghost" onClick={() => onDismiss(nudge.id)} title="Dismiss"
-            className="hover:bg-destructive/10 hover:text-destructive">
-            <X size={12} />
-          </Button>
-        </div>
-      )}
+      {/* Action buttons */}
+      <div className="flex flex-col gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        {!isOver && (
+          <>
+            <Button size="icon-sm" variant="success" onClick={() => onComplete(nudge.id)}>
+              <Check size={12} />
+            </Button>
+            <Button size="icon-sm" variant="ghost" onClick={() => onSnooze(nudge.id, 60)} title="Snooze 1 hour">
+              <Clock size={12} />
+            </Button>
+            <Button size="icon-sm" variant="ghost" onClick={() => onDismiss(nudge.id)} title="Dismiss"
+              className="hover:bg-destructive/10 hover:text-destructive">
+              <X size={12} />
+            </Button>
+          </>
+        )}
+        <Button size="icon-sm" variant="ghost" onClick={() => onDelete?.(nudge.id)} title="Delete permanently"
+          className="hover:bg-destructive/10 hover:text-destructive">
+          <Trash2 size={12} />
+        </Button>
+      </div>
     </div>
   )
 }

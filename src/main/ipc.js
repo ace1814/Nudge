@@ -6,7 +6,7 @@ import { resetOpenAI } from './ai'
 import { resetSupabase, getSupabase } from './supabase'
 import {
   upsertDay, insertNudges, getTodayNudges, getTodayEntry,
-  updateNudgeStatus, snoozeNudge, recordCompletion,
+  updateNudgeStatus, snoozeNudge, deleteNudge, recordCompletion,
   getActiveHabits, upsertHabit, deleteHabit,
   getSetting, setSetting
 } from './supabase'
@@ -117,6 +117,11 @@ export function setupIpcHandlers(mainWindow) {
 
   ipcMain.handle('dismiss-nudge', async (_, id) => {
     await updateNudgeStatus(id, 'missed')
+    return true
+  })
+
+  ipcMain.handle('delete-nudge', async (_, id) => {
+    await deleteNudge(id)
     return true
   })
 

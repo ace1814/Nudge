@@ -55,6 +55,7 @@ export default function Dashboard({ onOpenVoiceDump }) {
   const handleComplete = async (id) => { await window.nudge?.completeNudge(id); load() }
   const handleSnooze = async (id, mins) => { await window.nudge?.snoozeNudge(id, mins); load() }
   const handleDismiss = async (id) => { await window.nudge?.dismissNudge(id); load() }
+  const handleDelete = async (id) => { await window.nudge?.deleteNudge(id); load() }
 
   const greeting = () => {
     const h = new Date().getHours()
@@ -147,7 +148,7 @@ export default function Dashboard({ onOpenVoiceDump }) {
         {upcoming.length > 0 && (
           <Section title="Up next">
             {upcoming.map(n => (
-              <NudgeCard key={n.id} nudge={n} onComplete={handleComplete} onSnooze={handleSnooze} onDismiss={handleDismiss} />
+              <NudgeCard key={n.id} nudge={n} onComplete={handleComplete} onSnooze={handleSnooze} onDismiss={handleDismiss} onDelete={handleDelete} />
             ))}
           </Section>
         )}
@@ -183,7 +184,7 @@ export default function Dashboard({ onOpenVoiceDump }) {
         {missed.length > 0 && (
           <Section title="Missed today">
             {missed.map(n => (
-              <NudgeCard key={n.id} nudge={n} onComplete={handleComplete} onSnooze={handleSnooze} onDismiss={handleDismiss} />
+              <NudgeCard key={n.id} nudge={n} onComplete={handleComplete} onSnooze={handleSnooze} onDismiss={handleDismiss} onDelete={handleDelete} />
             ))}
           </Section>
         )}

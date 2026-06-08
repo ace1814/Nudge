@@ -113,6 +113,13 @@ export async function snoozeNudge(id, minutes = 60) {
   await updateNudgeStatus(id, 'snoozed', { snoozed_until: snoozedUntil })
 }
 
+export async function deleteNudge(id) {
+  const db = getSupabase()
+  if (!db) throw new Error('Supabase not configured')
+  const { error } = await db.from('nudges').delete().eq('id', id)
+  if (error) throw error
+}
+
 // ─── Habits ──────────────────────────────────────────────────────────────────
 
 export async function getActiveHabits() {

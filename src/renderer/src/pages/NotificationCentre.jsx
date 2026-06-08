@@ -27,6 +27,7 @@ export default function NotificationCentre() {
   const onComplete = handle((id) => window.nudge?.completeNudge(id))
   const onSnooze   = handle((id, m) => window.nudge?.snoozeNudge(id, m))
   const onDismiss  = handle((id) => window.nudge?.dismissNudge(id))
+  const onDelete   = handle((id) => window.nudge?.deleteNudge(id))
 
   return (
     <div className="flex flex-col h-full">
@@ -63,7 +64,7 @@ export default function NotificationCentre() {
           <p className="text-sm text-muted-foreground text-center pt-12">Nothing here.</p>
         )}
         {filtered.map(n => (
-          <NudgeCard key={n.id} nudge={n} onComplete={onComplete} onSnooze={onSnooze} onDismiss={onDismiss} />
+          <NudgeCard key={n.id} nudge={n} onComplete={onComplete} onSnooze={onSnooze} onDismiss={onDismiss} onDelete={onDelete} />
         ))}
       </div>
     </div>
