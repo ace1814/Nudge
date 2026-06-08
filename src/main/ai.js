@@ -66,8 +66,8 @@ Return ONLY a valid JSON object with this exact schema:
 Rules:
 - "context" type = informational only, no nudge fires (e.g. "going to coffee shop")
 - "task" type = one-time thing, fires once
-- "nudge" type = time-sensitive reminder, fires once or with recurrence
-- "habit" type = suggests adding to permanent habits (user confirms in app)
+- "nudge" type = time-sensitive reminder, fires once
+- "habit" type = anything the user wants to do regularly (daily swim, meditation, journaling, water, workouts). If recurrence is daily/weekly/every_Xh, ALWAYS use "habit" not "nudge"
 - For water / hydration: use recurrence "every_2h", window 09:00–21:00
 - For vlogging/content: schedule between 17:00–19:00
 - For work tasks with no time: schedule between 10:00–12:00
