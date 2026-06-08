@@ -11,7 +11,7 @@ export function setupTray(mainWindow) {
   } else {
     icon = icon.resize({ width: 18, height: 18 })
   }
-  icon.setTemplateImage(true)
+  // Do NOT set as template image — colored bunny icon needs to render as-is
 
   trayInstance = new Tray(icon)
   trayInstance.setToolTip('Nudge')
