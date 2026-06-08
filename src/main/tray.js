@@ -1,17 +1,16 @@
-import { Tray, Menu, nativeImage, screen } from 'electron'
+import { app, Tray, Menu, nativeImage, screen } from 'electron'
 import { join } from 'path'
 
 let trayInstance = null
 
 export function setupTray(mainWindow) {
-  const iconPath = join(__dirname, '../../resources/tray-icon.png')
-  let icon = nativeImage.createFromPath(iconPath)
-  if (icon.isEmpty()) {
-    icon = nativeImage.createEmpty()
-  } else {
-    icon = icon.resize({ width: 18, height: 18 })
-  }
-  // Do NOT set as template image — colored bunny icon needs to render as-is
+  // In packaged app, resources land in process.resourcesPath; in dev they're at project root/resources
+  const iconPath = app.isPackaged
+    ? join(process.resourcesPath, 'tray-icon.png')
+    : join(__dirname, '../../resources/tray-icon.png')
+
+  const icon = nativeImage.createFromPath(iconPath)
+  icon.setTemplateImage(true) // black-on-transparent; macOS inverts to white automatically
 
   trayInstance = new Tray(icon)
   trayInstance.setToolTip('Nudge')
