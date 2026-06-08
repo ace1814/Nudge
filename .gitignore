@@ -1,0 +1,22 @@
+node_modules/
+out/
+dist/
+*.dmg
+*.pkg
+*.zip
+.DS_Store
+*.log
+npm-debug.log*
+
+# electron-store data (contains local credentials)
+# These live in ~/Library/Application Support/nudge/
+# Never commit API keys
+
+# Build artifacts
+out/
+dist/
+
+# Editor
+.vscode/
+.idea/
+*.swp

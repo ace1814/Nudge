@@ -1,0 +1,28 @@
+{
+  "appId": "com.arpitchandak.nudge",
+  "productName": "Nudge",
+  "directories": {
+    "buildResources": "resources",
+    "output": "dist"
+  },
+  "files": [
+    "out/**/*"
+  ],
+  "mac": {
+    "target": "dmg",
+    "icon": "resources/icon.icns",
+    "category": "public.app-category.productivity",
+    "hardenedRuntime": true,
+    "entitlements": "resources/entitlements.mac.plist",
+    "entitlementsInherit": "resources/entitlements.mac.plist"
+  },
+  "dmg": {
+    "contents": [
+      { "x": 130, "y": 220 },
+      { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+    ]
+  },
+  "nsis": {
+    "oneClick": false
+  }
+}
