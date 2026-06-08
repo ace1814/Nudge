@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, systemPreferences } from 'electron'
+import { app, BrowserWindow, ipcMain, systemPreferences, globalShortcut } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { setupTray, showWindow } from './tray'
@@ -8,6 +8,7 @@ import { resetSupabase } from './supabase'
 
 let mainWindow = null
 let tray = null
+let isRecording = false  // prevent window hide while user is recording
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -30,17 +31,21 @@ function createWindow() {
 
   // Allow mic access from the renderer
   mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-    if (permission === 'media' || permission === 'microphone') {
-      callback(true)
-    } else {
-      callback(false)
+    if (permission === 'media' || permission === 'microphone') callback(true)
+    else callback(false)
+  })
+
+  // Hide on blur — but not while recording (recording = mic permission dialog might appear)
+  mainWindow.on('blur', () => {
+    if (!isRecording && !mainWindow.webContents.isDevToolsOpened()) {
+      mainWindow.hide()
     }
   })
 
-  mainWindow.on('blur', () => {
-    if (!mainWindow.webContents.isDevToolsOpened()) {
-      mainWindow.hide()
-    }
+  // Track recording state from renderer
+  ipcMain.on('set-recording', (_, val) => {
+    isRecording = !!val
+    // If recording stops and window is still visible, keep it visible
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -51,12 +56,12 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  // Don't show in dock — we're a menu bar app
+  // Don't show in dock — menu bar app
   if (process.platform === 'darwin') {
     app.dock.hide()
   }
 
-  resetSupabase() // clear any stale cached instance from previous run
+  resetSupabase()
   createWindow()
   tray = setupTray(mainWindow)
   setupIpcHandlers(mainWindow)
@@ -67,14 +72,27 @@ app.whenReady().then(() => {
     systemPreferences.askForMediaAccess('microphone')
   }
 
-  // Show window on first launch so the user can find it
+  // Global shortcut: ⌘⇧Space → show window + open voice recording
+  globalShortcut.register('CommandOrControl+Shift+Space', () => {
+    showWindow(mainWindow, tray)
+    // Small delay so the window is visible before the recording sheet opens
+    setTimeout(() => {
+      mainWindow.webContents.send('open-voice-dump')
+    }, 120)
+  })
+
+  // Show window on first launch
   mainWindow.webContents.once('did-finish-load', () => {
     showWindow(mainWindow, tray)
   })
 })
 
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
+})
+
 app.on('window-all-closed', (e) => {
-  // Prevent quit when all windows are closed — keep alive in tray
+  // Prevent quit — keep alive in tray
   e.preventDefault()
 })
 

@@ -1,56 +1,53 @@
 import { useState, useRef, useEffect } from 'react'
-import { Mic, MicOff, X, Loader2, Check, ChevronRight } from 'lucide-react'
+import { Microphone, MicrophoneSlash, X, CircleNotch, Check, CaretRight, PencilSimple, ArrowRight } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 
-const S = { IDLE: 'idle', RECORDING: 'recording', PROCESSING: 'processing', DONE: 'done', ERROR: 'error' }
+const S = { STARTING: 'starting', RECORDING: 'recording', PROCESSING: 'processing', DONE: 'done', TEXT: 'text', ERROR: 'error' }
 
 const CATEGORY_COLORS = {
   health: 'bg-emerald-500', work: 'bg-blue-500', content: 'bg-violet-500',
   personal: 'bg-amber-500', finance: 'bg-teal-500', other: 'bg-zinc-500'
 }
 
-export default function VoiceDump({ onClose }) {
-  const [state, setState] = useState(S.IDLE)
+export default function VoiceDump({ onClose, textMode = false }) {
+  const [state, setState]       = useState(textMode ? S.TEXT : S.STARTING)
   const [textInput, setTextInput] = useState('')
-  const [useText, setUseText] = useState(false)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState('')
+  const [result, setResult]     = useState(null)
+  const [error, setError]       = useState('')
   const [amplitude, setAmplitude] = useState(0)
-  const [elapsed, setElapsed] = useState(0)
+  const [elapsed, setElapsed]   = useState(0)
 
   const mediaRecorderRef = useRef(null)
-  const chunksRef = useRef([])
-  const analyserRef = useRef(null)
-  const animFrameRef = useRef(null)
-  const streamRef = useRef(null)
-  const timerRef = useRef(null)
-  const micReadyRef = useRef(false)
+  const chunksRef        = useRef([])
+  const analyserRef      = useRef(null)
+  const animFrameRef     = useRef(null)
+  const streamRef        = useRef(null)
+  const timerRef         = useRef(null)
 
+  // Auto-start recording (or open text mode) immediately on mount
   useEffect(() => {
-    // Request mic permission eagerly on mount so the button click goes straight to recording
-    window.nudge?.requestMic().then(granted => {
-      micReadyRef.current = !!granted
-      if (!granted) {
-        setError('Microphone access denied. Go to System Settings → Privacy & Security → Microphone and enable Nudge.')
-        setUseText(true)
-      }
-    }).catch(() => {})
-    return () => { stopRecording(); clearInterval(timerRef.current) }
+    if (!textMode) startRecording()
+    return () => {
+      stopRecording()
+      clearInterval(timerRef.current)
+    }
   }, [])
+
+  // Notify main process of recording state so the window doesn't hide mid-session
+  useEffect(() => {
+    window.nudge?.setRecording?.(state === S.RECORDING)
+  }, [state])
 
   const startRecording = async () => {
     try {
-      if (!micReadyRef.current) {
-        const granted = await window.nudge?.requestMic()
-        if (!granted) {
-          setError('Microphone access denied. Go to System Settings → Privacy & Security → Microphone and enable Nudge.')
-          setUseText(true)
-          return
-        }
-        micReadyRef.current = true
+      const granted = await window.nudge?.requestMic()
+      if (!granted) {
+        setError('Microphone access denied. Enable it in System Settings → Privacy → Microphone.')
+        setState(S.TEXT)
+        return
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -81,8 +78,8 @@ export default function VoiceDump({ onClose }) {
       timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000)
       setState(S.RECORDING)
     } catch {
-      setError('Mic access denied.')
-      setUseText(true)
+      setError('Could not access microphone.')
+      setState(S.TEXT)
     }
   }
 
@@ -112,7 +109,7 @@ export default function VoiceDump({ onClose }) {
     if (!textInput.trim()) return
     setState(S.PROCESSING)
     try {
-      const res = await window.nudge?.processVoiceDump(null, textInput) ?? null
+      const res = await window.nudge?.processVoiceDump(null, textInput.trim())
       setResult(res)
       setState(S.DONE)
     } catch (e) {
@@ -121,147 +118,162 @@ export default function VoiceDump({ onClose }) {
     }
   }
 
+  const switchToText = () => {
+    stopRecording()
+    setState(S.TEXT)
+  }
+
+  const switchToVoice = () => {
+    setError('')
+    setState(S.STARTING)
+    startRecording()
+  }
+
   const formatElapsed = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-  const micScale = 1 + (amplitude / 255) * 0.35
+  const micScale = 1 + (amplitude / 255) * 0.3
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-background animate-fade-up">
-      {/* Topbar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <h2 className="text-sm font-semibold text-foreground">Voice Dump</h2>
-        <Button size="icon-sm" variant="ghost" onClick={onClose}>
-          <X size={14} />
-        </Button>
-      </div>
+    <>
+      {/* Dim backdrop */}
+      <div
+        className="absolute inset-0 z-40 bg-black/50 animate-fade-in-bg"
+        onClick={onClose}
+      />
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6">
+      {/* Sheet — slides up from bottom */}
+      <div className="absolute bottom-0 left-0 right-0 z-50 bg-card border-t border-border rounded-t-2xl shadow-2xl animate-slide-up max-h-[82%] flex flex-col">
+        {/* Handle */}
+        <div className="flex justify-center pt-2.5 pb-1">
+          <div className="w-8 h-1 rounded-full bg-border" />
+        </div>
 
-        {/* IDLE */}
-        {state === S.IDLE && !useText && (
-          <>
-            <div className="text-center">
-              <p className="text-sm font-medium text-foreground">Talk freely.</p>
-              <p className="text-xs text-muted-foreground mt-1">Plans, tasks, reminders — anything. Nudge figures the rest out.</p>
+        {/* Top row */}
+        <div className="flex items-center justify-between px-4 py-2">
+          <span className="text-xs font-semibold text-foreground">
+            {state === S.STARTING   ? 'Starting…'   :
+             state === S.RECORDING  ? 'Recording'    :
+             state === S.PROCESSING ? 'Processing'   :
+             state === S.DONE       ? 'Done'         : 'Type a task'}
+          </span>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-1">
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-4 pb-6">
+
+          {/* STARTING */}
+          {state === S.STARTING && (
+            <div className="flex items-center justify-center py-10">
+              <CircleNotch size={24} className="text-primary animate-spin" />
             </div>
+          )}
 
-            <div className="relative flex items-center justify-center">
-              {/* Ambient rings */}
-              <span className="absolute w-24 h-24 rounded-full border border-primary/10 animate-ping" style={{ animationDuration: '2s' }} />
-              <span className="absolute w-20 h-20 rounded-full border border-primary/15" />
-              <button
-                onClick={startRecording}
-                className="relative z-10 w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-lg hover:bg-primary/90 active:scale-95 transition-all"
-              >
-                <Mic size={24} className="text-primary-foreground" />
-              </button>
-            </div>
-
-            <button onClick={() => setUseText(true)} className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline">
-              Type instead
-            </button>
-          </>
-        )}
-
-        {/* RECORDING */}
-        {state === S.RECORDING && (
-          <>
-            <div className="text-center">
-              <p className="text-sm font-medium text-foreground">Listening...</p>
-              <p className="text-xs text-muted-foreground mt-1 font-mono">{formatElapsed(elapsed)}</p>
-            </div>
-
-            <div className="relative flex items-center justify-center">
-              {/* Live amplitude ring */}
-              <span
-                className="absolute rounded-full bg-primary/10 transition-transform duration-75"
-                style={{
-                  width: `${64 + amplitude * 0.4}px`,
-                  height: `${64 + amplitude * 0.4}px`,
-                }}
-              />
-              <button
-                onClick={stopRecording}
-                style={{ transform: `scale(${micScale})` }}
-                className="relative z-10 w-16 h-16 rounded-full bg-destructive flex items-center justify-center shadow-lg hover:bg-destructive/90 transition-colors"
-              >
-                <MicOff size={22} className="text-white" />
-              </button>
-            </div>
-
-            <p className="text-xs text-muted-foreground">Tap to stop & process</p>
-          </>
-        )}
-
-        {/* PROCESSING */}
-        {state === S.PROCESSING && (
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 size={28} className="text-primary animate-spin" />
-            <div className="text-center">
-              <p className="text-sm font-medium text-foreground">Parsing your plan...</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Whisper → GPT-4o</p>
-            </div>
-          </div>
-        )}
-
-        {/* DONE */}
-        {state === S.DONE && result && (
-          <div className="w-full flex flex-col gap-3 animate-fade-up">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-done/15 flex items-center justify-center">
-                <Check size={11} className="text-done" />
+          {/* RECORDING */}
+          {state === S.RECORDING && (
+            <div className="flex flex-col items-center gap-4 py-6">
+              <div className="relative flex items-center justify-center">
+                <span
+                  className="absolute rounded-full bg-destructive/15 transition-all duration-75"
+                  style={{ width: `${56 + amplitude * 0.45}px`, height: `${56 + amplitude * 0.45}px` }}
+                />
+                <button
+                  onClick={stopRecording}
+                  style={{ transform: `scale(${micScale})` }}
+                  className="relative z-10 w-14 h-14 rounded-full bg-destructive flex items-center justify-center shadow-lg hover:bg-destructive/90 transition-colors"
+                >
+                  <MicrophoneSlash size={22} weight="fill" className="text-white" />
+                </button>
               </div>
-              <p className="text-sm font-medium text-foreground">
-                Got it — {result.items?.filter(i => i.type !== 'context' && i.type !== 'habit').length} nudge{result.items?.filter(i => i.type !== 'context' && i.type !== 'habit').length !== 1 ? 's' : ''}
-                {result.storedHabits?.length > 0 && `, ${result.storedHabits.length} habit${result.storedHabits.length !== 1 ? 's' : ''}`} created.
-              </p>
+              <p className="text-2xl font-bold tabular-nums text-foreground">{formatElapsed(elapsed)}</p>
+              <p className="text-xs text-muted-foreground">Tap to stop</p>
+              <button
+                onClick={switchToText}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <PencilSimple size={12} /> Type instead
+              </button>
             </div>
+          )}
 
-            {result.summary && (
-              <p className="text-xs text-muted-foreground leading-relaxed">{result.summary}</p>
-            )}
+          {/* PROCESSING */}
+          {state === S.PROCESSING && (
+            <div className="flex flex-col items-center gap-3 py-10">
+              <CircleNotch size={26} className="text-primary animate-spin" />
+              <p className="text-sm font-medium text-foreground">Parsing your plan…</p>
+              <p className="text-xs text-muted-foreground">Whisper → GPT-4o</p>
+            </div>
+          )}
 
-            <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto">
-              {result.items?.map((item, i) => (
-                <div key={i} className="flex items-start gap-2.5 px-3 py-2 rounded-lg bg-card border border-border">
-                  <span className={cn('w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0', item.type === 'context' ? 'bg-muted-foreground' : CATEGORY_COLORS[item.category] ?? 'bg-zinc-500')} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground leading-snug">{item.title}</p>
-                    {item.nudge_copy && item.type !== 'context' && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{item.nudge_copy}</p>
+          {/* DONE */}
+          {state === S.DONE && result && (
+            <div className="flex flex-col gap-3 py-2">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-done/15 flex items-center justify-center flex-shrink-0">
+                  <Check size={11} weight="bold" className="text-done" />
+                </div>
+                <p className="text-sm font-medium text-foreground">
+                  {result.items?.filter(i => i.type !== 'context' && i.type !== 'habit').length ?? 0} nudge(s)
+                  {result.storedHabits?.length > 0 && `, ${result.storedHabits.length} habit(s)`} created.
+                </p>
+              </div>
+
+              {result.summary && (
+                <p className="text-xs text-muted-foreground leading-relaxed">{result.summary}</p>
+              )}
+
+              <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
+                {result.items?.map((item, i) => (
+                  <div key={i} className="flex items-start gap-2.5 px-3 py-2 rounded-lg bg-background border border-border">
+                    <span className={cn('w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0', CATEGORY_COLORS[item.category] ?? 'bg-zinc-500')} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground leading-snug">{item.title}</p>
+                      {item.nudge_copy && item.type !== 'context' && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{item.nudge_copy}</p>
+                      )}
+                    </div>
+                    {item.type !== 'context' && (
+                      <Badge variant={item.type === 'habit' ? 'default' : 'secondary'}>{item.type}</Badge>
                     )}
                   </div>
-                  {item.type !== 'context' && (
-                    <Badge variant={item.type === 'habit' ? 'default' : 'secondary'}>{item.type}</Badge>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
+
+              <Button onClick={onClose} className="w-full mt-1">
+                Done <CaretRight size={13} weight="bold" />
+              </Button>
             </div>
+          )}
 
-            <Button onClick={onClose} className="w-full mt-1">
-              Done <ChevronRight size={14} />
-            </Button>
-          </div>
-        )}
+          {/* TEXT / ERROR */}
+          {(state === S.TEXT || state === S.ERROR) && state !== S.PROCESSING && state !== S.DONE && (
+            <div className="flex flex-col gap-3 py-2">
+              {error && <p className="text-xs text-destructive text-center">{error}</p>}
+              <Textarea
+                value={textInput}
+                onChange={e => setTextInput(e.target.value)}
+                placeholder="Remind me to call the dentist at 3pm, pick up groceries, follow up with John…"
+                className="h-24"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleTextSubmit() }}
+              />
+              <Button onClick={handleTextSubmit} disabled={!textInput.trim()} className="w-full gap-1.5">
+                <ArrowRight size={13} weight="bold" /> Parse this
+              </Button>
+              {state !== S.ERROR && (
+                <button
+                  onClick={switchToVoice}
+                  className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Microphone size={12} /> Use voice instead
+                </button>
+              )}
+            </div>
+          )}
 
-        {/* TEXT INPUT / ERROR */}
-        {(state === S.ERROR || useText) && state !== S.PROCESSING && state !== S.DONE && (
-          <div className="w-full flex flex-col gap-3 animate-fade-up">
-            {error && <p className="text-xs text-destructive text-center">{error}</p>}
-            <Textarea
-              value={textInput}
-              onChange={e => setTextInput(e.target.value)}
-              placeholder="I'm heading to a coffee shop, remind me to drink water, need to follow up with..."
-              className="h-28"
-              autoFocus
-            />
-            <Button onClick={handleTextSubmit} disabled={!textInput.trim()} className="w-full">
-              Parse this
-            </Button>
-          </div>
-        )}
-
+        </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Eye, EyeOff, Check, Shield, Wifi, WifiOff, Loader2, Bell } from 'lucide-react'
+import { Eye, EyeSlash, Check, Shield, WifiHigh, WifiX, CircleNotch, Bell, Command } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -77,6 +77,19 @@ export default function Settings({ onConfigured }) {
 
       <div className="flex flex-col gap-5 px-4 pt-4">
 
+        {/* Keyboard shortcut */}
+        <Section title="Keyboard Shortcut" icon={<Command size={11} />}>
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-card">
+            <p className="text-sm text-foreground">Open voice recording</p>
+            <div className="flex items-center gap-1">
+              {['⌘', '⇧', 'Space'].map(k => (
+                <kbd key={k} className="px-1.5 py-0.5 rounded bg-muted border border-border text-[11px] font-mono text-muted-foreground">{k}</kbd>
+              ))}
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5">Works system-wide even when Nudge is in the background.</p>
+        </Section>
+
         {/* OpenAI Key */}
         <Section title="OpenAI" icon={<Shield size={11} />}>
           {keySet && (
@@ -94,7 +107,7 @@ export default function Settings({ onConfigured }) {
             />
             <button onClick={() => setShowKey(!showKey)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-              {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
+              {showKey ? <EyeSlash size={13} /> : <Eye size={13} />}
             </button>
           </div>
           <p className="text-[11px] text-muted-foreground mt-1.5">Never stored in the database. Keychain only.</p>
@@ -122,8 +135,8 @@ export default function Settings({ onConfigured }) {
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-1 disabled:opacity-50"
           >
             {dbStatus === 'testing'
-              ? <Loader2 size={11} className="animate-spin" />
-              : <Wifi size={11} />}
+              ? <CircleNotch size={11} className="animate-spin" />
+              : <WifiHigh size={11} />}
             Test connection
           </button>
 
@@ -134,7 +147,7 @@ export default function Settings({ onConfigured }) {
             )}>
               {dbStatus.ok
                 ? <><Check size={11} className="mt-0.5 flex-shrink-0" /> All tables found. Supabase is connected.</>
-                : <><WifiOff size={11} className="mt-0.5 flex-shrink-0" /> <span>{dbStatus.error}</span></>
+                : <><WifiX size={11} className="mt-0.5 flex-shrink-0" /> <span>{dbStatus.error}</span></>
               }
             </div>
           )}

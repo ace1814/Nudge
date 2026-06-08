@@ -9,39 +9,45 @@ import SetupBanner from './components/SetupBanner'
 
 export default function App() {
   const [page, setPage] = useState('dashboard')
-  const [voiceDumpOpen, setVoiceDumpOpen] = useState(false)
+  const [voiceDump, setVoiceDump] = useState(null) // null | 'voice' | 'text'
   const [configured, setConfigured] = useState(true)
 
+  const openVoice = () => setVoiceDump('voice')
+  const openText  = () => setVoiceDump('text')
+  const closeVoiceDump = () => setVoiceDump(null)
+
   useEffect(() => {
-    // Listen for main process events
-    window.nudge?.on('open-voice-dump', () => setVoiceDumpOpen(true))
+    // Global shortcut or tray menu fires this
+    window.nudge?.on('open-voice-dump', openVoice)
     window.nudge?.subscribeRealtime()
 
-    // Check if keys are configured
     window.nudge?.getOpenAIKeySet().then(set => {
       if (!set) setConfigured(false)
     })
   }, [])
 
   return (
-    <div className="flex flex-col h-screen bg-surface overflow-hidden">
+    <div className="flex flex-col h-screen bg-surface overflow-hidden relative">
       {!configured && (
         <SetupBanner onGoToSettings={() => setPage('settings')} />
       )}
 
       <div className="flex-1 overflow-hidden">
         {page === 'dashboard' && (
-          <Dashboard onOpenVoiceDump={() => setVoiceDumpOpen(true)} />
+          <Dashboard onOpenVoice={openVoice} onOpenText={openText} />
         )}
         {page === 'nudges' && <NotificationCentre />}
         {page === 'habits' && <Habits />}
         {page === 'settings' && <Settings onConfigured={() => setConfigured(true)} />}
       </div>
 
-      <NavBar current={page} onChange={setPage} onMic={() => setVoiceDumpOpen(true)} />
+      <NavBar current={page} onChange={setPage} onMic={openVoice} />
 
-      {voiceDumpOpen && (
-        <VoiceDump onClose={() => setVoiceDumpOpen(false)} />
+      {voiceDump && (
+        <VoiceDump
+          textMode={voiceDump === 'text'}
+          onClose={closeVoiceDump}
+        />
       )}
     </div>
   )

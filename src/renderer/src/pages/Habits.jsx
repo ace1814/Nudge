@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -119,7 +119,7 @@ export default function Habits() {
               <Button size="icon-sm" variant="ghost"
                 className="hover:bg-destructive/10 hover:text-destructive"
                 onClick={async () => { await window.nudge?.deleteHabit(h.id); load() }}>
-                <Trash2 size={13} />
+                <Trash size={13} />
               </Button>
             </CardContent>
           </Card>

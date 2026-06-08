@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Mic, Droplets, Plus, Minus, TrendingUp, Check } from 'lucide-react'
+import { Microphone, PencilSimple, Drop, Plus, Minus, TrendUp, Check } from '@phosphor-icons/react'
 import dayjs from 'dayjs'
 import NudgeCard from '@/components/NudgeCard'
 import { Button } from '@/components/ui/button'
@@ -7,22 +7,19 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
-export default function Dashboard({ onOpenVoiceDump }) {
-  const [todayEntry, setTodayEntry] = useState(null)
-  const [nudges, setNudges] = useState([])
-  const [habits, setHabits] = useState([])
+export default function Dashboard({ onOpenVoice, onOpenText }) {
+  const [nudges, setNudges]         = useState([])
+  const [habits, setHabits]         = useState([])
   const [doneHabits, setDoneHabits] = useState(new Set())
   const [waterCount, setWaterCount] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]       = useState(true)
 
   const load = useCallback(async () => {
     try {
-      const [entry, todayNudges, allHabits] = await Promise.all([
-        window.nudge?.getTodayEntry()?.catch(() => null) ?? Promise.resolve(null),
+      const [todayNudges, allHabits] = await Promise.all([
         window.nudge?.getTodayNudges()?.catch(() => []) ?? Promise.resolve([]),
         window.nudge?.getHabits()?.catch(() => []) ?? Promise.resolve([])
       ])
-      setTodayEntry(entry)
       setNudges(todayNudges || [])
       setHabits(allHabits || [])
     } catch (e) {
@@ -42,8 +39,8 @@ export default function Dashboard({ onOpenVoiceDump }) {
     .filter(n => n.status === 'pending' || n.status === 'fired')
     .sort((a, b) => new Date(a.scheduled_for) - new Date(b.scheduled_for))
 
-  const missed = nudges.filter(n => n.status === 'missed')
-  const done = nudges.filter(n => n.status === 'done')
+  const missed  = nudges.filter(n => n.status === 'missed')
+  const done    = nudges.filter(n => n.status === 'done')
   const hasWater = nudges.some(n => n.category === 'health' && n.title.toLowerCase().includes('water'))
 
   const toggleHabit = (id) => setDoneHabits(prev => {
@@ -53,9 +50,9 @@ export default function Dashboard({ onOpenVoiceDump }) {
   })
 
   const handleComplete = async (id) => { await window.nudge?.completeNudge(id); load() }
-  const handleSnooze = async (id, mins) => { await window.nudge?.snoozeNudge(id, mins); load() }
-  const handleDismiss = async (id) => { await window.nudge?.dismissNudge(id); load() }
-  const handleDelete = async (id) => { await window.nudge?.deleteNudge(id); load() }
+  const handleSnooze   = async (id, mins) => { await window.nudge?.snoozeNudge(id, mins); load() }
+  const handleDismiss  = async (id) => { await window.nudge?.dismissNudge(id); load() }
+  const handleDelete   = async (id) => { await window.nudge?.deleteNudge(id); load() }
 
   const greeting = () => {
     const h = new Date().getHours()
@@ -75,7 +72,7 @@ export default function Dashboard({ onOpenVoiceDump }) {
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
-      <div className="px-4 pt-5 pb-4">
+      <div className="px-4 pt-5 pb-3">
         <p className="text-[11px] text-muted-foreground font-medium tracking-wide uppercase">
           {dayjs().format('dddd, D MMMM')}
         </p>
@@ -83,35 +80,32 @@ export default function Dashboard({ onOpenVoiceDump }) {
 
         {nudges.length > 0 && (
           <div className="flex items-center gap-3 mt-3">
-            <Stat label="Due" value={upcoming.length} color="text-pending" />
-            <Stat label="Done" value={done.length} color="text-done" />
-            <Stat label="Missed" value={missed.length} color="text-missed" />
+            <Stat label="Due"    value={upcoming.length} color="text-pending" />
+            <Stat label="Done"   value={done.length}     color="text-done" />
+            <Stat label="Missed" value={missed.length}   color="text-missed" />
           </div>
         )}
+      </div>
+
+      {/* Quick entry */}
+      <div className="px-4 pb-3 flex gap-2">
+        <button
+          onClick={onOpenVoice}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+        >
+          <Microphone size={14} weight="fill" /> Voice
+        </button>
+        <button
+          onClick={onOpenText}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-card border border-border text-foreground text-sm font-medium hover:border-primary/40 transition-colors"
+        >
+          <PencilSimple size={14} /> Type a task
+        </button>
       </div>
 
       <Separator />
 
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
-        {/* Day summary / voice dump prompt */}
-        {todayEntry?.parsed_summary ? (
-          <div className="text-sm text-muted-foreground leading-relaxed px-0.5">
-            {todayEntry.parsed_summary}
-          </div>
-        ) : (
-          <button
-            onClick={onOpenVoiceDump}
-            className="flex items-center gap-3 w-full px-4 py-4 rounded-xl border border-dashed border-border hover:border-primary/40 hover:bg-primary/5 transition-all text-left group"
-          >
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
-              <Mic size={15} className="text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">What's the plan today?</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Tap to voice dump</p>
-            </div>
-          </button>
-        )}
 
         {/* Habits */}
         {habits.length > 0 && (
@@ -131,7 +125,7 @@ export default function Dashboard({ onOpenVoiceDump }) {
                   'w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all',
                   doneHabits.has(h.id) ? 'border-done bg-done' : 'border-muted-foreground'
                 )}>
-                  {doneHabits.has(h.id) && <Check size={10} className="text-white" />}
+                  {doneHabits.has(h.id) && <Check size={10} weight="bold" className="text-white" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={cn('text-sm font-medium', doneHabits.has(h.id) ? 'line-through text-muted-foreground' : 'text-foreground')}>
@@ -159,7 +153,7 @@ export default function Dashboard({ onOpenVoiceDump }) {
             <CardContent className="pt-3">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                  <Droplets size={16} className="text-blue-400" />
+                  <Drop size={16} className="text-blue-400" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">Water</p>
@@ -189,12 +183,12 @@ export default function Dashboard({ onOpenVoiceDump }) {
           </Section>
         )}
 
-        {/* Empty with plan */}
-        {nudges.length === 0 && todayEntry && (
+        {/* Empty state */}
+        {nudges.length === 0 && habits.length === 0 && (
           <div className="flex flex-col items-center justify-center flex-1 py-8 text-center">
-            <TrendingUp size={24} className="text-muted-foreground/40 mb-2" />
-            <p className="text-sm text-muted-foreground">All clear.</p>
-            <p className="text-xs text-muted-foreground/60 mt-0.5">Nudges appear as the day goes on.</p>
+            <TrendUp size={24} className="text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Nothing yet.</p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">Tap Voice or Type above to add tasks.</p>
           </div>
         )}
       </div>

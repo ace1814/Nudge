@@ -1,11 +1,11 @@
-import { LayoutDashboard, Bell, Repeat, Settings, Mic } from 'lucide-react'
+import { House, Bell, ArrowsClockwise, GearSix, Microphone } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
 
 const tabs = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Today' },
-  { id: 'nudges', icon: Bell, label: 'Nudges' },
-  { id: 'habits', icon: Repeat, label: 'Habits' },
-  { id: 'settings', icon: Settings, label: 'Settings' },
+  { id: 'dashboard', Icon: House,           label: 'Today' },
+  { id: 'nudges',    Icon: Bell,            label: 'Nudges' },
+  { id: 'habits',    Icon: ArrowsClockwise, label: 'Habits' },
+  { id: 'settings',  Icon: GearSix,         label: 'Settings' },
 ]
 
 export default function NavBar({ current, onChange, onMic }) {
@@ -19,7 +19,7 @@ export default function NavBar({ current, onChange, onMic }) {
               onClick={onMic}
               className="flex-shrink-0 mx-1 w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-md hover:bg-primary/90 active:scale-95 transition-all"
             >
-              <Mic size={17} className="text-primary-foreground" />
+              <Microphone size={17} weight="fill" className="text-primary-foreground" />
             </button>
           )}
           <button
@@ -27,12 +27,10 @@ export default function NavBar({ current, onChange, onMic }) {
             onClick={() => onChange(tab.id)}
             className={cn(
               'flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-colors',
-              current === tab.id
-                ? 'text-primary'
-                : 'text-muted-foreground hover:text-foreground'
+              current === tab.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            <tab.icon size={17} strokeWidth={current === tab.id ? 2.2 : 1.8} />
+            <tab.Icon size={17} weight={current === tab.id ? 'fill' : 'regular'} />
             <span className="text-[9px] font-medium tracking-wide uppercase">{tab.label}</span>
           </button>
         </>
