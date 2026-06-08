@@ -27,17 +27,30 @@ export default function VoiceDump({ onClose }) {
   const animFrameRef = useRef(null)
   const streamRef = useRef(null)
   const timerRef = useRef(null)
+  const micReadyRef = useRef(false)
 
-  useEffect(() => () => { stopRecording(); clearInterval(timerRef.current) }, [])
+  useEffect(() => {
+    // Request mic permission eagerly on mount so the button click goes straight to recording
+    window.nudge?.requestMic().then(granted => {
+      micReadyRef.current = !!granted
+      if (!granted) {
+        setError('Microphone access denied. Go to System Settings → Privacy & Security → Microphone and enable Nudge.')
+        setUseText(true)
+      }
+    }).catch(() => {})
+    return () => { stopRecording(); clearInterval(timerRef.current) }
+  }, [])
 
   const startRecording = async () => {
     try {
-      // Check / request macOS mic permission first
-      const granted = await window.nudge?.requestMic()
-      if (granted === false) {
-        setError('Microphone access denied. Go to System Settings → Privacy & Security → Microphone and enable Electron.')
-        setUseText(true)
-        return
+      if (!micReadyRef.current) {
+        const granted = await window.nudge?.requestMic()
+        if (!granted) {
+          setError('Microphone access denied. Go to System Settings → Privacy & Security → Microphone and enable Nudge.')
+          setUseText(true)
+          return
+        }
+        micReadyRef.current = true
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
@@ -198,7 +211,10 @@ export default function VoiceDump({ onClose }) {
               <div className="w-5 h-5 rounded-full bg-done/15 flex items-center justify-center">
                 <Check size={11} className="text-done" />
               </div>
-              <p className="text-sm font-medium text-foreground">Got it — {result.items?.filter(i => i.type !== 'context').length} nudge{result.items?.length !== 1 ? 's' : ''} created.</p>
+              <p className="text-sm font-medium text-foreground">
+                Got it — {result.items?.filter(i => i.type !== 'context' && i.type !== 'habit').length} nudge{result.items?.filter(i => i.type !== 'context' && i.type !== 'habit').length !== 1 ? 's' : ''}
+                {result.storedHabits?.length > 0 && `, ${result.storedHabits.length} habit${result.storedHabits.length !== 1 ? 's' : ''}`} created.
+              </p>
             </div>
 
             {result.summary && (

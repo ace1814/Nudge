@@ -51,20 +51,22 @@ export function setupIpcHandlers(mainWindow) {
         throw new Error(`Supabase error: ${dbErr.message || JSON.stringify(dbErr)}`)
       }
 
-      const nudgeRows = parsed.items
-        .filter(item => item.type !== 'context')
-        .map(item => ({
-          day_id: day?.id ?? null,
-          title: item.title,
-          type: item.type,
-          category: item.category,
-          scheduled_for: item.scheduled_for,
-          recurrence: item.recurrence || null,
-          recurrence_window_start: item.recurrence_window_start || null,
-          recurrence_window_end: item.recurrence_window_end || null,
-          nudge_copy: item.nudge_copy,
-          status: 'pending'
-        }))
+      // Separate habits from actionable nudges/tasks
+      const habitItems = parsed.items.filter(item => item.type === 'habit')
+      const nudgeItems = parsed.items.filter(item => item.type !== 'context' && item.type !== 'habit')
+
+      const nudgeRows = nudgeItems.map(item => ({
+        day_id: day?.id ?? null,
+        title: item.title,
+        type: item.type,
+        category: item.category,
+        scheduled_for: item.scheduled_for,
+        recurrence: item.recurrence || null,
+        recurrence_window_start: item.recurrence_window_start || null,
+        recurrence_window_end: item.recurrence_window_end || null,
+        nudge_copy: item.nudge_copy,
+        status: 'pending'
+      }))
 
       let stored = []
       if (day) {
@@ -75,7 +77,23 @@ export function setupIpcHandlers(mainWindow) {
         }
       }
 
-      return { transcript, summary: parsed.summary, items: parsed.items, stored }
+      // Auto-create habits in habits table
+      const storedHabits = []
+      for (const h of habitItems) {
+        try {
+          const freq = ['daily', 'weekdays', 'weekends'].includes(h.recurrence) ? h.recurrence : 'daily'
+          const habit = await upsertHabit({
+            name: h.title,
+            frequency: freq,
+            active: true
+          })
+          storedHabits.push(habit)
+        } catch (dbErr) {
+          console.warn('Could not insert habit:', dbErr.message)
+        }
+      }
+
+      return { transcript, summary: parsed.summary, items: parsed.items, stored, storedHabits }
     } catch (err) {
       // Serialize the error properly so IPC doesn't swallow it
       throw new Error(err?.message || err?.error_description || JSON.stringify(err) || 'Unknown error')

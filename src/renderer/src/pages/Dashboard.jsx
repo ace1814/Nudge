@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Mic, Droplets, Plus, Minus, TrendingUp } from 'lucide-react'
+import { Mic, Droplets, Plus, Minus, TrendingUp, Check } from 'lucide-react'
 import dayjs from 'dayjs'
 import NudgeCard from '@/components/NudgeCard'
 import { Button } from '@/components/ui/button'
@@ -10,17 +10,21 @@ import { cn } from '@/lib/utils'
 export default function Dashboard({ onOpenVoiceDump }) {
   const [todayEntry, setTodayEntry] = useState(null)
   const [nudges, setNudges] = useState([])
+  const [habits, setHabits] = useState([])
+  const [doneHabits, setDoneHabits] = useState(new Set())
   const [waterCount, setWaterCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     try {
-      const [entry, todayNudges] = await Promise.all([
+      const [entry, todayNudges, allHabits] = await Promise.all([
         window.nudge?.getTodayEntry()?.catch(() => null) ?? Promise.resolve(null),
-        window.nudge?.getTodayNudges()?.catch(() => []) ?? Promise.resolve([])
+        window.nudge?.getTodayNudges()?.catch(() => []) ?? Promise.resolve([]),
+        window.nudge?.getHabits()?.catch(() => []) ?? Promise.resolve([])
       ])
       setTodayEntry(entry)
       setNudges(todayNudges || [])
+      setHabits(allHabits || [])
     } catch (e) {
       console.error(e)
     } finally {
@@ -37,11 +41,16 @@ export default function Dashboard({ onOpenVoiceDump }) {
   const upcoming = nudges
     .filter(n => n.status === 'pending' || n.status === 'fired')
     .sort((a, b) => new Date(a.scheduled_for) - new Date(b.scheduled_for))
-    .slice(0, 3)
 
   const missed = nudges.filter(n => n.status === 'missed')
   const done = nudges.filter(n => n.status === 'done')
   const hasWater = nudges.some(n => n.category === 'health' && n.title.toLowerCase().includes('water'))
+
+  const toggleHabit = (id) => setDoneHabits(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
 
   const handleComplete = async (id) => { await window.nudge?.completeNudge(id); load() }
   const handleSnooze = async (id, mins) => { await window.nudge?.snoozeNudge(id, mins); load() }
@@ -101,6 +110,37 @@ export default function Dashboard({ onOpenVoiceDump }) {
               <p className="text-xs text-muted-foreground mt-0.5">Tap to voice dump</p>
             </div>
           </button>
+        )}
+
+        {/* Habits */}
+        {habits.length > 0 && (
+          <Section title="Habits">
+            {habits.map(h => (
+              <button
+                key={h.id}
+                onClick={() => toggleHabit(h.id)}
+                className={cn(
+                  'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl border text-left transition-all',
+                  doneHabits.has(h.id)
+                    ? 'border-done/30 bg-done/8 opacity-60'
+                    : 'border-border bg-card hover:border-primary/30'
+                )}
+              >
+                <div className={cn(
+                  'w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all',
+                  doneHabits.has(h.id) ? 'border-done bg-done' : 'border-muted-foreground'
+                )}>
+                  {doneHabits.has(h.id) && <Check size={10} className="text-white" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={cn('text-sm font-medium', doneHabits.has(h.id) ? 'line-through text-muted-foreground' : 'text-foreground')}>
+                    {h.name}
+                  </p>
+                  {h.frequency && <p className="text-[11px] text-muted-foreground capitalize">{h.frequency}</p>}
+                </div>
+              </button>
+            ))}
+          </Section>
         )}
 
         {/* Upcoming nudges */}
